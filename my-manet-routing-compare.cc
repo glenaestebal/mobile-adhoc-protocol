@@ -81,6 +81,7 @@
 #include "ns3/flow-monitor-helper.h"
 #include "ns3/animation-interface.h"
 #include "ns3/netanim-module.h"
+#include "ns3/trace-helper.h"
 
 using namespace ns3;
 using namespace dsr;
@@ -118,7 +119,7 @@ RoutingExperiment::RoutingExperiment ()
     bytesTotal (0),
     packetsReceived (0),
     m_CSVfileName ("manet-routing.output.csv"),
-    m_traceMobility (false),
+    m_traceMobility (true),
     m_protocol (2) // AODV
 {
 }
@@ -216,8 +217,8 @@ main (int argc, char *argv[])
   std::endl;
   out.close ();
 
-  int nSinks = 5;
-  //int nSinks = 10;
+
+  int nSinks = 10;
   double txp = 7.5;
 
   experiment.Run (nSinks, txp, CSVfileName);
@@ -233,7 +234,9 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
 
   int nWifis = 50;
 
-  double TotalTime = 200.0;
+  // simulation time: 300
+  double TotalTime = 300.0;
+  //double TotalTime = 200.0;
   std::string rate ("2048bps");
   std::string phyMode ("DsssRate11Mbps");
   std::string tr_name ("manet-routing-compare");
@@ -376,13 +379,16 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   ss4 << rate;
   std::string sRate = ss4.str ();
 
-  //NS_LOG_INFO ("Configure Tracing.");
-  //tr_name = tr_name + "_" + m_protocolName +"_" + nodes + "nodes_" + sNodeSpeed + "speed_" + sNodePause + "pause_" + sRate + "rate";
+  NS_LOG_INFO ("Configure Tracing.");
+  tr_name = tr_name + "_" + m_protocolName +"_" + nodes + "nodes_" + sNodeSpeed + "speed_" + sNodePause + "pause_" + sRate + "rate";
 
-  //AsciiTraceHelper ascii;
-  //Ptr<OutputStreamWrapper> osw = ascii.CreateFileStream ( (tr_name + ".tr").c_str());
-  //wifiPhy.EnableAsciiAll (osw);
   AsciiTraceHelper ascii;
+  Ptr<OutputStreamWrapper> osw = ascii.CreateFileStream ( (tr_name + ".tr").c_str());
+  wifiPhy.EnableAsciiAll (osw);
+  // enable pcap file
+  wifiPhy.EnablePcapAll (tr_name);
+  
+  //AsciiTraceHelper ascii;
   MobilityHelper::EnableAsciiAll (ascii.CreateFileStream (tr_name + ".mob"));
 
   Ptr<FlowMonitor> flowmon;
@@ -395,6 +401,7 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   CheckThroughput ();
 
   Simulator::Stop (Seconds (TotalTime));
+  
   AnimationInterface anim("my-manet-routing-compare.xml");
   Simulator::Run ();
 
