@@ -218,7 +218,9 @@ main (int argc, char *argv[])
   std::endl;
   out.close ();
 
-  int nSinks = 10;
+  // may be the 15 static and 15 module
+  int nSinks = 15;
+  //int nSinks = 10;
   double txp = 7.5;
 
   experiment.Run (nSinks, txp, CSVfileName);
@@ -249,7 +251,7 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
 
   // packet size
   //Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("64"));
-  Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("128"));
+  Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("512"));
   Config::SetDefault ("ns3::OnOffApplication::DataRate",  StringValue (rate));
 
   //Set Non-unicastMode rate to unicast mode
