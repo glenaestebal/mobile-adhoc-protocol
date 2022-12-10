@@ -118,12 +118,13 @@ RoutingExperiment::RoutingExperiment ()
   : port (9),
     bytesTotal (0),
     packetsReceived (0),
-    m_CSVfileName ("manet-routing.output.csv"),
+    // change to AODV.csv
+    m_CSVfileName ("AODV.csv"),
     m_traceMobility (true),
     m_protocol (2) // AODV
+
 {
 }
-
 static inline std::string
 PrintReceivedPacket (Ptr<Socket> socket, Ptr<Packet> packet, Address senderAddress)
 {
@@ -217,7 +218,6 @@ main (int argc, char *argv[])
   std::endl;
   out.close ();
 
-
   int nSinks = 10;
   double txp = 7.5;
 
@@ -232,10 +232,13 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   m_txp = txp;
   m_CSVfileName = CSVfileName;
 
-  int nWifis = 50;
+  // might be the nodes
+  //int nWifis = 50;
+  int nWifis = 30;
 
-  // simulation time: 300
-  double TotalTime = 300.0;
+  // simulation time: 300 dapat CHANGE LATER!
+  //double TotalTime = 300.0;
+  double TotalTime = 110.0;
   //double TotalTime = 200.0;
   std::string rate ("2048bps");
   std::string phyMode ("DsssRate11Mbps");
@@ -244,7 +247,9 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   int nodePause = 0; //in s
   m_protocolName = "protocol";
 
-  Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("64"));
+  // packet size
+  //Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("64"));
+  Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("128"));
   Config::SetDefault ("ns3::OnOffApplication::DataRate",  StringValue (rate));
 
   //Set Non-unicastMode rate to unicast mode
@@ -401,8 +406,7 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   CheckThroughput ();
 
   Simulator::Stop (Seconds (TotalTime));
-  
-  AnimationInterface anim("my-manet-routing-compare.xml");
+  AnimationInterface anim("AODV.xml");
   Simulator::Run ();
 
   flowmon->SerializeToXmlFile ((tr_name + ".flowmon").c_str(), false, false);
