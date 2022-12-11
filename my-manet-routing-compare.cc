@@ -245,7 +245,7 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   double TotalTime = 103.0;
   std::string rate ("2048bps");
   std::string phyMode ("DsssRate11Mbps");
-  std::string tr_name ("manet-routing-compare");
+  std::string tr_name ("AODV");
   int nodeSpeed = 20; //in m/s
   int nodePause = 0; //in s
   m_protocolName = "protocol";
@@ -298,10 +298,10 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
 
   ObjectFactory pos;
   pos.SetTypeId ("ns3::RandomRectanglePositionAllocator");
-  //pos.Set ("X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=300.0]"));
-  //pos.Set ("Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1500.0]"));
-  pos.Set ("X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1500.0]"));
-  pos.Set ("Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=300.0]"));
+  pos.Set ("X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=300.0]"));
+  pos.Set ("Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1500.0]"));
+  //pos.Set ("X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1500.0]"));
+  //pos.Set ("Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=300.0]"));
 
   Ptr<PositionAllocator> taPositionAlloc = pos.Create ()->GetObject<PositionAllocator> ();
   streamIndex += taPositionAlloc->AssignStreams (streamIndex);
@@ -323,15 +323,11 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   NS_UNUSED (streamIndex); // From this point, streamIndex is unused
 
   // static nodes (reference: examples/wireless/wifi-simple-adhoc-grid.cc)
-//   mobilityStatic.SetPositionAllocator ("ns3::GridPositionAllocator",
-//                                 	"MinX", DoubleValue (.0),
-//                                 	"MinY", DoubleValue (0.0),
-//                                 	"DeltaX", DoubleValue (50),
-//                                 	"DeltaY", DoubleValue (200),
- //                                	"GridWidth", UintegerValue (3));
-//  mobilityStatic.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-//  mobilityStatic.Install (staticNodes);
-  
+  mobilityAdhoc.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobilityAdhoc.SetPositionAllocator (taPositionAlloc);
+  mobilityAdhoc.Install (staticNodes);
+
+
   AodvHelper aodv;
   DsrMainHelper dsrMain;
   Ipv4ListRoutingHelper list;
@@ -362,19 +358,19 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   for (int i = 0; i < nSinks; i++)
     {
       Ptr<UniformRandomVariable> var = CreateObject<UniformRandomVariable> ();
-      
-      //receiving packets (examples/wireless/wifi-tcp.cc)
+     
+      //create packet sink to receive tcp packets. reference: examples/wireless/wifi-tcp.cc
       Address sinkAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
       PacketSinkHelper sinkHelper (factory, sinkAddress);
       ApplicationContainer sinkApp = sinkHelper.Install (all_Nodes.Get(i));
       sinkApp.Start (Seconds (var->GetValue (0.0,1.0)));
       sinkApp.Stop (Seconds (TotalTime));
-
+      
       AddressValue remoteAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
       onoff1.SetAttribute ("Remote", remoteAddress);
 
       ApplicationContainer temp = onoff1.Install (all_Nodes.Get (i + nSinks));
-      temp.Start (Seconds (var->GetValue (100.0,101.0)));
+      temp.Start (Seconds (var->GetValue (0.0,1.0)));
       temp.Stop (Seconds (TotalTime));
     }
 
