@@ -86,7 +86,7 @@
 using namespace ns3;
 using namespace dsr;
 
-NS_LOG_COMPONENT_DEFINE ("manet-routing-compare");
+NS_LOG_COMPONENT_DEFINE ("AODV-Simulation");
 
 class RoutingExperiment
 {
@@ -118,9 +118,9 @@ RoutingExperiment::RoutingExperiment ()
   : port (9),
     bytesTotal (0),
     packetsReceived (0),
-    // change to AODV.csv
+    // change to AODV-simulation.csv
     m_CSVfileName ("AODV-simulation.csv"),
-    m_traceMobility (true),
+    m_traceMobility (true), // change to true for tracing
     m_protocol (2) // AODV
 
 {
@@ -250,7 +250,7 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   int nodePause = 0; //in s
   m_protocolName = "protocol";
 
-  // packet size
+  // packet size (reference: examples/wireless/wifi-tcp.cc)
   //Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("64"));
   //Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("512"));
   Config::SetDefault ("ns3::OnOffApplication::DataRate",  StringValue (rate));
@@ -259,13 +259,15 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   //Set Non-unicastMode rate to unicast mode
   Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode",StringValue (phyMode));
 
+  // create an object to create nodes
   NodeContainer adhocNodes;
   NodeContainer staticNodes;
   
-  // 15 static nodes, 15 mobile nodes
+  // create 15 static nodes, 15 mobile nodes
   adhocNodes.Create (nWifis);
   staticNodes.Create (nWifis);
-  NodeContainer all_Nodes = NodeContainer (adhocNodes, staticNodes);
+  // object that contains all nodes (examples/tcp/tcp-star-server.cc)
+  NodeContainer all_Nodes = NodeContainer (adhocNodes, staticNodes); 
 
   // setting up wifi phy and channel using helpers
   WifiHelper wifi;
@@ -320,15 +322,15 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   streamIndex += mobilityAdhoc.AssignStreams (adhocNodes, streamIndex);
   NS_UNUSED (streamIndex); // From this point, streamIndex is unused
 
-  // static nodes
-   mobilityStatic.SetPositionAllocator ("ns3::GridPositionAllocator",
-                                 	"MinX", DoubleValue (.0),
-                                 	"MinY", DoubleValue (0.0),
-                                 	"DeltaX", DoubleValue (50),
-                                 	"DeltaY", DoubleValue (200),
-                                 	"GridWidth", UintegerValue (3));
-  mobilityStatic.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  mobilityStatic.Install (staticNodes);
+  // static nodes (reference: examples/wireless/wifi-simple-adhoc-grid.cc)
+//   mobilityStatic.SetPositionAllocator ("ns3::GridPositionAllocator",
+//                                 	"MinX", DoubleValue (.0),
+//                                 	"MinY", DoubleValue (0.0),
+//                                 	"DeltaX", DoubleValue (50),
+//                                 	"DeltaY", DoubleValue (200),
+ //                                	"GridWidth", UintegerValue (3));
+//  mobilityStatic.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+//  mobilityStatic.Install (staticNodes);
   
   AodvHelper aodv;
   DsrMainHelper dsrMain;
@@ -354,14 +356,14 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   OnOffHelper onoff1 (factory , Address ());
   onoff1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1.0]"));
   onoff1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.0]"));
-  // packet size
-  onoff1.SetAttribute ("PacketSize", UintegerValue (packetSize)); //reference: examples/wireless/wifi-tcp.cc
+  // packet size (reference: examples/wireless/wifi-tcp.cc)
+  onoff1.SetAttribute ("PacketSize", UintegerValue (packetSize)); 
 
   for (int i = 0; i < nSinks; i++)
     {
       Ptr<UniformRandomVariable> var = CreateObject<UniformRandomVariable> ();
       
-      //receiving packets
+      //receiving packets (examples/wireless/wifi-tcp.cc)
       Address sinkAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
       PacketSinkHelper sinkHelper (factory, sinkAddress);
       ApplicationContainer sinkApp = sinkHelper.Install (all_Nodes.Get(i));
