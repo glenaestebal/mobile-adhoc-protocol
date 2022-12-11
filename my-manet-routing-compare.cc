@@ -329,6 +329,7 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   mobilityStatic.SetPositionAllocator (taPositionAlloc);
   mobilityStatic.Install (staticNodes);
   
+  
   AodvHelper aodv;
   DsrMainHelper dsrMain;
   Ipv4ListRoutingHelper list;
