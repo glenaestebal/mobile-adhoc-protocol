@@ -242,7 +242,7 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   std::string factory = "ns3::TcpSocketFactory";  
 
   // simulation time: 300 dapat CHANGE LATER!
-  //double TotalTime = 300.0;
+  double TotalTime = 300.0;
   double TotalTime = 103.0;
   std::string rate ("2048bps");
   std::string phyMode ("DsssRate11Mbps");
