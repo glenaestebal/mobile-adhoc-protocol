@@ -196,7 +196,7 @@ RoutingExperiment::CommandSetup (int argc, char **argv)
   CommandLine cmd;
   cmd.AddValue ("CSVfileName", "The name of the CSV output file name", m_CSVfileName);
   cmd.AddValue ("traceMobility", "Enable mobility tracing", m_traceMobility);
-  //cmd.AddValue ("protocol", "1=OLSR;2=AODV;3=DSDV;4=DSR", m_protocol);
+  cmd.AddValue ("protocol", "AODV", m_protocol);
   cmd.Parse (argc, argv);
   return m_CSVfileName;
 }
@@ -219,9 +219,14 @@ main (int argc, char *argv[])
   out.close ();
 
   // half of the nodes
-  int nSinks = 15;
+  //int nSinks = 15;
   //int nSinks = 10;
-  double txp = 7.5;
+  //double txp = 7.5;
+  
+  int nSinks = 5;
+  double txp = -5;
+  
+  
 
   experiment.Run (nSinks, txp, CSVfileName);
 }
@@ -253,8 +258,9 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   // packet size (reference: examples/wireless/wifi-tcp.cc)
   //Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("64"));
   //Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("512"));
-  Config::SetDefault ("ns3::OnOffApplication::DataRate",  StringValue (rate));
   Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (packetSize));
+  Config::SetDefault ("ns3::OnOffApplication::DataRate",  StringValue (rate));
+  
 
   //Set Non-unicastMode rate to unicast mode
   Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode",StringValue (phyMode));
@@ -322,11 +328,10 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   streamIndex += mobilityAdhoc.AssignStreams (adhocNodes, streamIndex);
   NS_UNUSED (streamIndex); // From this point, streamIndex is unused
 
-  // static nodes (reference: examples/wireless/wifi-simple-adhoc-grid.cc)
+  // static nodes
   mobilityStatic.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobilityStatic.SetPositionAllocator (taPositionAlloc);
   mobilityStatic.Install (staticNodes);
-
 
   AodvHelper aodv;
   DsrMainHelper dsrMain;
@@ -402,9 +407,9 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   wifiPhy.EnablePcap (tr_name, adhocDevices);
   
   
-  Ptr<FlowMonitor> flowmon;
-  FlowMonitorHelper flowmonHelper;
-  flowmon = flowmonHelper.InstallAll ();
+  //Ptr<FlowMonitor> flowmon;
+  //FlowMonitorHelper flowmonHelper;
+  //flowmon = flowmonHelper.InstallAll ();
 
   NS_LOG_INFO ("Run Simulation.");
 
@@ -412,9 +417,10 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
 
   Simulator::Stop (Seconds (TotalTime));
   AnimationInterface anim("AODV.xml");
+  anim.SetMaxPktsPerTraceFile(50000);
   Simulator::Run ();
 
-  flowmon->SerializeToXmlFile ((tr_name + ".flowmon").c_str(), false, false);
+  //flowmon->SerializeToXmlFile ((tr_name + ".flowmon").c_str(), false, false);
 
   Simulator::Destroy ();
 }
