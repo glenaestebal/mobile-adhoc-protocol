@@ -119,7 +119,7 @@ RoutingExperiment::RoutingExperiment ()
     bytesTotal (0),
     packetsReceived (0),
     // change to AODV.csv
-    m_CSVfileName ("AODV.csv"),
+    m_CSVfileName ("AODV-simulation.csv"),
     m_traceMobility (true),
     m_protocol (2) // AODV
 
@@ -196,7 +196,7 @@ RoutingExperiment::CommandSetup (int argc, char **argv)
   CommandLine cmd;
   cmd.AddValue ("CSVfileName", "The name of the CSV output file name", m_CSVfileName);
   cmd.AddValue ("traceMobility", "Enable mobility tracing", m_traceMobility);
-  cmd.AddValue ("protocol", "1=OLSR;2=AODV;3=DSDV;4=DSR", m_protocol);
+  //cmd.AddValue ("protocol", "1=OLSR;2=AODV;3=DSDV;4=DSR", m_protocol);
   cmd.Parse (argc, argv);
   return m_CSVfileName;
 }
@@ -218,7 +218,7 @@ main (int argc, char *argv[])
   std::endl;
   out.close ();
 
-  // may be the 15 static and 15 module
+  // half of the nodes
   int nSinks = 15;
   //int nSinks = 10;
   double txp = 7.5;
@@ -236,12 +236,13 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
 
   // might be the nodes
   //int nWifis = 50;
-  int nWifis = 30;
+  int nWifis = 15;
+  uint32_t packetSize = 512;
+  std::string factory = "ns3::TcpSocketFactory";  
 
   // simulation time: 300 dapat CHANGE LATER!
   //double TotalTime = 300.0;
   double TotalTime = 103.0;
-  //double TotalTime = 200.0;
   std::string rate ("2048bps");
   std::string phyMode ("DsssRate11Mbps");
   std::string tr_name ("manet-routing-compare");
@@ -251,14 +252,20 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
 
   // packet size
   //Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("64"));
-  Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("512"));
+  //Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("512"));
   Config::SetDefault ("ns3::OnOffApplication::DataRate",  StringValue (rate));
+  Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (packetSize));
 
   //Set Non-unicastMode rate to unicast mode
   Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode",StringValue (phyMode));
 
   NodeContainer adhocNodes;
+  NodeContainer staticNodes;
+  
+  // 15 static nodes, 15 mobile nodes
   adhocNodes.Create (nWifis);
+  staticNodes.Create (nWifis);
+  NodeContainer all_Nodes = NodeContainer (adhocNodes, staticNodes);
 
   // setting up wifi phy and channel using helpers
   WifiHelper wifi;
@@ -280,9 +287,11 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   wifiPhy.Set ("TxPowerEnd", DoubleValue (txp));
 
   wifiMac.SetType ("ns3::AdhocWifiMac");
-  NetDeviceContainer adhocDevices = wifi.Install (wifiPhy, wifiMac, adhocNodes);
+  NetDeviceContainer adhocDevices = wifi.Install (wifiPhy, wifiMac, all_Nodes);
 
   MobilityHelper mobilityAdhoc;
+  MobilityHelper mobilityStatic;
+  
   int64_t streamIndex = 0; // used to get consistent mobility across scenarios
 
   ObjectFactory pos;
@@ -299,54 +308,41 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   ssSpeed << "ns3::UniformRandomVariable[Min=0.0|Max=" << nodeSpeed << "]";
   std::stringstream ssPause;
   ssPause << "ns3::ConstantRandomVariable[Constant=" << nodePause << "]";
+  
+  // mobile nodes
   mobilityAdhoc.SetMobilityModel ("ns3::RandomWaypointMobilityModel",
                                   "Speed", StringValue (ssSpeed.str ()),
                                   "Pause", StringValue (ssPause.str ()),
                                   "PositionAllocator", PointerValue (taPositionAlloc));
   mobilityAdhoc.SetPositionAllocator (taPositionAlloc);
   mobilityAdhoc.Install (adhocNodes);
+  
   streamIndex += mobilityAdhoc.AssignStreams (adhocNodes, streamIndex);
   NS_UNUSED (streamIndex); // From this point, streamIndex is unused
 
+  // static nodes
+   mobilityStatic.SetPositionAllocator ("ns3::GridPositionAllocator",
+                                 	"MinX", DoubleValue (.0),
+                                 	"MinY", DoubleValue (0.0),
+                                 	"DeltaX", DoubleValue (50),
+                                 	"DeltaY", DoubleValue (200),
+                                 	"GridWidth", UintegerValue (3));
+  mobilityStatic.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobilityStatic.Install (staticNodes);
+  
   AodvHelper aodv;
-  OlsrHelper olsr;
-  DsdvHelper dsdv;
-  DsrHelper dsr;
   DsrMainHelper dsrMain;
   Ipv4ListRoutingHelper list;
   InternetStackHelper internet;
+  Ipv4StaticRoutingHelper staticRouting;
 
-  switch (m_protocol)
-    {
-    case 1:
-      list.Add (olsr, 100);
-      m_protocolName = "OLSR";
-      break;
-    case 2:
-      list.Add (aodv, 100);
-      m_protocolName = "AODV";
-      break;
-    case 3:
-      list.Add (dsdv, 100);
-      m_protocolName = "DSDV";
-      break;
-    case 4:
-      m_protocolName = "DSR";
-      break;
-    default:
-      NS_FATAL_ERROR ("No such protocol:" << m_protocol);
-    }
-
-  if (m_protocol < 4)
-    {
-      internet.SetRoutingHelper (list);
-      internet.Install (adhocNodes);
-    }
-  else if (m_protocol == 4)
-    {
-      internet.Install (adhocNodes);
-      dsrMain.Install (dsr, adhocNodes);
-    }
+  // tcp/ip
+  list.Add (staticRouting, 0);
+  list.Add (aodv, 60);
+  m_protocolName = "AODV";
+  internet.SetTcp("ns3::TcpL4Protocol");
+  internet.SetRoutingHelper (list);
+  internet.Install (all_Nodes);
 
   NS_LOG_INFO ("assigning ip address");
 
@@ -355,19 +351,27 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   Ipv4InterfaceContainer adhocInterfaces;
   adhocInterfaces = addressAdhoc.Assign (adhocDevices);
 
-  OnOffHelper onoff1 ("ns3::UdpSocketFactory",Address ());
+  OnOffHelper onoff1 (factory , Address ());
   onoff1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1.0]"));
   onoff1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.0]"));
+  // packet size
+  onoff1.SetAttribute ("PacketSize", UintegerValue (packetSize)); //reference: examples/wireless/wifi-tcp.cc
 
   for (int i = 0; i < nSinks; i++)
     {
-      Ptr<Socket> sink = SetupPacketReceive (adhocInterfaces.GetAddress (i), adhocNodes.Get (i));
+      Ptr<UniformRandomVariable> var = CreateObject<UniformRandomVariable> ();
+      
+      //receiving packets
+      Address sinkAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
+      PacketSinkHelper sinkHelper (factory, sinkAddress);
+      ApplicationContainer sinkApp = sinkHelper.Install (all_Nodes.Get(i));
+      sinkApp.Start (Seconds (var->GetValue (0.0,1.0)));
+      sinkApp.Stop (Seconds (TotalTime));
 
       AddressValue remoteAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
       onoff1.SetAttribute ("Remote", remoteAddress);
 
-      Ptr<UniformRandomVariable> var = CreateObject<UniformRandomVariable> ();
-      ApplicationContainer temp = onoff1.Install (adhocNodes.Get (i + nSinks));
+      ApplicationContainer temp = onoff1.Install (all_Nodes.Get (i + nSinks));
       temp.Start (Seconds (var->GetValue (100.0,101.0)));
       temp.Stop (Seconds (TotalTime));
     }
@@ -390,20 +394,19 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
 
   NS_LOG_INFO ("Configure Tracing.");
   tr_name = tr_name + "_" + m_protocolName +"_" + nodes + "nodes_" + sNodeSpeed + "speed_" + sNodePause + "pause_" + sRate + "rate";
-
-  AsciiTraceHelper ascii;
-  Ptr<OutputStreamWrapper> osw = ascii.CreateFileStream ( (tr_name + ".tr").c_str());
-  wifiPhy.EnableAsciiAll (osw);
-  // enable pcap file
-  wifiPhy.EnablePcapAll (tr_name);
   
-  //AsciiTraceHelper ascii;
+  AsciiTraceHelper ascii;
+  Ptr<OutputStreamWrapper> osw = ascii.CreateFileStream ((tr_name + ".tr").c_str());
   MobilityHelper::EnableAsciiAll (ascii.CreateFileStream (tr_name + ".mob"));
-
+  // enable tr file
+  wifiPhy.EnableAsciiAll (osw); 
+  // enable pcap file
+  wifiPhy.EnablePcap (tr_name, adhocDevices);
+  
+  
   Ptr<FlowMonitor> flowmon;
   FlowMonitorHelper flowmonHelper;
   flowmon = flowmonHelper.InstallAll ();
-
 
   NS_LOG_INFO ("Run Simulation.");
 
