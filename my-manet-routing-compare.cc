@@ -298,10 +298,10 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
 
   ObjectFactory pos;
   pos.SetTypeId ("ns3::RandomRectanglePositionAllocator");
-  pos.Set ("X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=300.0]"));
-  pos.Set ("Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1500.0]"));
-  //pos.Set ("X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1500.0]"));
-  //pos.Set ("Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=300.0]"));
+//  pos.Set ("X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=300.0]"));
+//  pos.Set ("Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1500.0]"));
+  pos.Set ("X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=25.0]"));
+  pos.Set ("Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=25.0]"));
 
   Ptr<PositionAllocator> taPositionAlloc = pos.Create ()->GetObject<PositionAllocator> ();
   streamIndex += taPositionAlloc->AssignStreams (streamIndex);
@@ -323,9 +323,9 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   NS_UNUSED (streamIndex); // From this point, streamIndex is unused
 
   // static nodes (reference: examples/wireless/wifi-simple-adhoc-grid.cc)
-  mobilityAdhoc.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  mobilityAdhoc.SetPositionAllocator (taPositionAlloc);
-  mobilityAdhoc.Install (staticNodes);
+  mobilityStatic.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobilityStatic.SetPositionAllocator (taPositionAlloc);
+  mobilityStatic.Install (staticNodes);
 
 
   AodvHelper aodv;
@@ -336,7 +336,7 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
 
   // tcp/ip
   list.Add (staticRouting, 0);
-  list.Add (aodv, 60);
+  list.Add (aodv, 100);
   m_protocolName = "AODV";
   internet.SetTcp("ns3::TcpL4Protocol");
   internet.SetRoutingHelper (list);
