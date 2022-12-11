@@ -219,15 +219,11 @@ main (int argc, char *argv[])
   out.close ();
 
   // half of the nodes
-  //int nSinks = 15;
+  int nSinks = 15;
   //int nSinks = 10;
-  //double txp = 7.5;
+  double txp = 7.5;
   
-  int nSinks = 5;
-  double txp = -5;
-  
-  
-
+ 
   experiment.Run (nSinks, txp, CSVfileName);
 }
 
@@ -332,7 +328,7 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
   mobilityStatic.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobilityStatic.SetPositionAllocator (taPositionAlloc);
   mobilityStatic.Install (staticNodes);
-
+  
   AodvHelper aodv;
   DsrMainHelper dsrMain;
   Ipv4ListRoutingHelper list;
@@ -368,14 +364,14 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
       Address sinkAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
       PacketSinkHelper sinkHelper (factory, sinkAddress);
       ApplicationContainer sinkApp = sinkHelper.Install (all_Nodes.Get(i));
-      sinkApp.Start (Seconds (var->GetValue (0.0,1.0)));
+      sinkApp.Start (Seconds (var->GetValue (100.0,101.0)));
       sinkApp.Stop (Seconds (TotalTime));
       
       AddressValue remoteAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
       onoff1.SetAttribute ("Remote", remoteAddress);
 
       ApplicationContainer temp = onoff1.Install (all_Nodes.Get (i + nSinks));
-      temp.Start (Seconds (var->GetValue (0.0,1.0)));
+      temp.Start (Seconds (var->GetValue (100.0,101.0)));
       temp.Stop (Seconds (TotalTime));
     }
 
@@ -417,7 +413,6 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
 
   Simulator::Stop (Seconds (TotalTime));
   AnimationInterface anim("AODV.xml");
-  anim.SetMaxPktsPerTraceFile(50000);
   Simulator::Run ();
 
   //flowmon->SerializeToXmlFile ((tr_name + ".flowmon").c_str(), false, false);
