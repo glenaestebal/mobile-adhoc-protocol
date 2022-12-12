@@ -243,7 +243,6 @@ RoutingExperiment::Run (int nSinks, double txp, std::string CSVfileName)
 
   // simulation time: 300 dapat CHANGE LATER!
   double TotalTime = 300.0;
-  double TotalTime = 103.0;
   std::string rate ("2048bps");
   std::string phyMode ("DsssRate11Mbps");
   std::string tr_name ("AODV");
